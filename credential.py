@@ -3,48 +3,55 @@ from hashlib import pbkdf2_hmac
 from crypto import derive_key
 from storage import load_data, save_data
 from cryptography.fernet import Fernet
-def add_credential(data, key_password, website, username, password):
-    salt = base64.urlsafe_b64decode(data["salt"].encode())
+from database import save_credential, get_credentials, delete_credential_db
+import psycopg2
+conn = psycopg2.connect(
+    host="localhost",
+    port="5432",
+    database="password_manager",
+    user="postgres",
+    password="postgres"
+)
+def salt_():
+    cursor = conn.cursor()
+    cursor.execute('''SELECT salt FROM vault LIMIT 1''')
+    result = cursor.fetchone()
+    if not result:
+        print("No user registered. Please register first.")
+        return None
+    else:
+        salt = result[0]
+        return salt
+def add_credential(key_password, website, username, password):
+    salt = base64.urlsafe_b64decode(salt_().encode())
     key = derive_key(key_password, salt)
     cipher = Fernet(key)
     encrypted_password = cipher.encrypt(password.encode()).decode()
-
-    data["credentials"][website] = {
-        "username": username,
-        "password": encrypted_password,
-    }
-    save_data(data)
-def view_credentials(data, key_password):
-    salt = base64.urlsafe_b64decode(data["salt"].encode())
+    save_credential(website, username, encrypted_password)
+def view_credentials(key_password):
+    salt = base64.urlsafe_b64decode(salt_().encode())
     key = derive_key(key_password, salt)
     cipher = Fernet(key)
-    credentials_list = []
-    for website, creds in data["credentials"].items():
-        decrypted_password = cipher.decrypt(creds["password"].encode()).decode()
-        credentials_list.append({"Website": website, "Username": creds["username"], "Password": decrypted_password})
-    if not data["credentials"]:
-        return []
-    return credentials_list
-def search_credential(data, key_password,website):
+    row=get_credentials()
+    credentials = []
+    for _,website, username, encrypted_password in row:
+        decrypted_password = cipher.decrypt(encrypted_password.encode()).decode()
+        credentials.append({"Website": website, "Username": username, "Password": decrypted_password})
+    return credentials
+def search_credential(key_password,website):
    
-    if data["credentials"].get(website):
-        salt = base64.urlsafe_b64decode(data["salt"].encode())
-        key = derive_key(key_password, salt)
-        cipher = Fernet(key)
-        decrypted_password = cipher.decrypt(
-            data["credentials"][website]["password"].encode()
-        ).decode()
-        return [{"Username": data['credentials'][website]['username'], "Password": decrypted_password}]
-    else:
-        return []
+    row=get_credentials()
+    salt = base64.urlsafe_b64decode(salt_().encode())
+    key = derive_key(key_password, salt)
+    cipher = Fernet(key)
+    for _,web, username, encrypted_password in row:
+        if web == website:
+            decrypted_password = cipher.decrypt(encrypted_password.encode()).decode()
+            return {"Website": web, "Username": username, "Password": decrypted_password}
+    return {"message": "Credential not found."}
+def delete_credential(key_password,website):
+    delete_credential_db(website)
 
-def delete_credential(data,key_password,website):
-    if data["credentials"].get(website):
-        del data["credentials"][website]
-        save_data(data)
-        print("Credential deleted successfully!")
-    else:
-        print("Credential not found.")
 
 
 
