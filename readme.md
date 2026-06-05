@@ -1,118 +1,107 @@
-# Password Manager
+# Encrypted Password Manager
 
-A secure password manager built in Python with support for both a Command Line Interface (CLI) and a FastAPI-based REST API.
+A secure password manager built using **FastAPI**, **PostgreSQL**, and **Cryptography**.
 
 ## Features
 
-* Master password authentication
-* Password hashing using PBKDF2-HMAC-SHA256
-* Random salt generation for enhanced security
-* Credential encryption using Fernet symmetric encryption
-* Store website credentials securely
-* Search saved credentials
-* View all stored credentials
-* Delete credentials
-* FastAPI REST API support
-* CLI version support
+* Master Password Registration
+* Secure Login Authentication
+* Password Hashing using PBKDF2-HMAC-SHA256
+* Random Salt Generation
+* Credential Encryption using Fernet
+* Add Credentials
+* View Credentials
+* Search Credentials
+* Delete Credentials
+* PostgreSQL Database Storage
+* FastAPI REST API
 
-## Project Structure
+## Tech Stack
 
-```text
-password-manager/
-├── api.py
-├── cli.py
-├── auth.py
-├── credential.py
-├── crypto.py
-├── storage.py
-├── README.md
-```
+* Python
+* FastAPI
+* PostgreSQL
+* Psycopg2
+* Cryptography (Fernet)
+* PBKDF2-HMAC-SHA256
 
-## Security Design
+## Security Features
 
-### Master Password
+### Master Password Protection
 
-The master password is never stored in plain text.
+* Master password is never stored in plain text.
+* Passwords are hashed using PBKDF2-HMAC-SHA256 with 100,000 iterations.
+* Unique salt is generated and stored for authentication.
 
-* Salt is generated using `os.urandom()`
-* Password is hashed using PBKDF2-HMAC-SHA256
-* Only the hash and salt are stored
+### Credential Encryption
 
-### Credential Storage
-
-Stored website passwords are encrypted using Fernet encryption before being saved.
-
-This means credentials are not stored as plain text.
+* Stored account passwords are encrypted using Fernet symmetric encryption.
+* Encryption key is derived from the master password and stored salt.
 
 ## API Endpoints
 
 ### Register
 
-```http
-POST /register
-```
+POST `/register`
+
+Registers a master password.
 
 ### Login
 
-```http
-POST /login
-```
+POST `/login`
+
+Authenticates the user.
 
 ### Add Credential
 
-```http
-POST /add_credential
-```
+POST `/add_credential`
+
+Stores an encrypted credential.
 
 ### View Credentials
 
-```http
-POST /view_credentials
-```
+POST `/view_credentials`
+
+Returns all decrypted credentials.
 
 ### Search Credential
 
-```http
-POST /search_credential
-```
+POST `/search_credential`
+
+Searches a credential by website.
 
 ### Delete Credential
 
-```http
-POST /delete_credential
-```
+POST `/delete_credential`
 
-## Technologies Used
+Deletes a stored credential.
 
-* Python
-* FastAPI
-* Pydantic
-* Cryptography (Fernet)
-* PBKDF2-HMAC
-* JSON Storage
+## Project Evolution
+
+### Version 1
+
+* JSON-based storage
+* Local file persistence
+
+### Version 2
+
+* PostgreSQL integration
+* Vault table for master password storage
+* Database-backed authentication
+* Improved security architecture
+* FastAPI endpoints for credential management
 
 ## Future Improvements
 
-* PostgreSQL integration
-* SQLAlchemy ORM
 * JWT Authentication
-* Better exception handling
 * Multi-user support
-* Docker deployment
-
-## Learning Outcomes
-
-This project helped me learn:
-
-* API development with FastAPI
-* Password hashing and salting
-* Symmetric encryption
-* Authentication fundamentals
-* Secure credential storage
-* Project structuring in Python
+* Update Credential API
+* Password Generator
+* Password Strength Checker
+* Docker Deployment
+* Frontend UI
 
 ## Author
 
 Ansh
-B.Tech CSE Student
-Interested in Backend Development and Security
+
