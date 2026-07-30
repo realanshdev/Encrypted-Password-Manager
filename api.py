@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Depends
 from pydantic import BaseModel
-from auth import register,login
+from auth import register,login,create_access_token,verify_token,check_user
 from storage import load_data
 from credential import add_credential,view_credentials,search_credential,delete_credential
 from database import create_vault, init_db
+from fastapi.security import OAuth2PasswordRequestForm
 app = FastAPI()
 init_db()
 create_vault()
@@ -16,46 +17,43 @@ class register_request(BaseModel):
 def register_(request: register_request):
     register(request.password)
     return {"message": "Registration successful!"}
-class login_request(BaseModel):
-    password: str
-isloggedin=False
 @app.post("/login")
-def login_(request: login_request):
-    isloggedin= login(request.password)
-    if isloggedin:
-        return {"message": "Login successful!"}
+def login_(form_data:OAuth2PasswordRequestForm=Depends()):
+    token= login(form_data.password)
+    if token:
+        return {"access_token": token,
+                "token_type": "bearer"}
     else:
         return {"message": "Login failed. Incorrect password."}
+class login_request(BaseModel):
+    password: str
 class add_credential_request(BaseModel):
     master_password: str
     website: str
     username: str
     password: str
 @app.post("/add_credential")
-def add_credential_(request: add_credential_request):
+def add_credential_(request: add_credential_request,user=Depends(check_user)):
     add_credential(request.master_password, request.website, request.username, request.password)
     return {"message": "Credential added successfully!"}
 @app.post("/view_credentials")
-def view_credentials_(request: login_request):
+def view_credentials_(request:login_request ,user=Depends(check_user)):
     credentials = view_credentials(request.password)
     return credentials
 class search_credential_request(BaseModel):
     password: str
     website: str
 @app.post("/search_credential")
-def search_credential_(request: search_credential_request):
+def search_credential_(request: search_credential_request,user=Depends(check_user)):
     return search_credential(request.password, request.website)
 class delete_credential_request(BaseModel):
     password: str
     website: str
 @app.post("/delete_credential")
-def delete_credential_(request: delete_credential_request):
+def delete_credential_(request: delete_credential_request,user=Depends(check_user)):
     
     if not request.password:
         return {"message": "Password is required for authentication."}
-    isloggedin,key_password = login(request.password)
-    if(not isloggedin):
-        return {"message": "Please login first to delete credentials."}
     delete_credential(request.password, request.website)
     return {"message": "Credential deleted successfully!"}
 

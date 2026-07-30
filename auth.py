@@ -9,6 +9,11 @@ from hashlib import pbkdf2_hmac
 from database import create_vault, init_db
 import psycopg2
 import psycopg2
+from jose import  jwt
+from datetime import datetime, timedelta,timezone
+from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
+from fastapi import Depends,HTTPException
+
 print("Connecting to the database...")
 conn = psycopg2.connect(
     host="localhost",
@@ -17,6 +22,11 @@ conn = psycopg2.connect(
     user="postgres",
     password="postgres"
 )
+SECRET_KEY = "my-super-secret-key-change-this"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+OAuth2_obj=OAuth2PasswordBearer(tokenUrl="login")
+
 
 def register(password):
     
@@ -31,7 +41,16 @@ def register(password):
     print("Registration successful!")
     
 
+def create_access_token(data: dict):
+    to_encode = data.copy()
 
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    to_encode["exp"] = expire
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 def login(password):
     cursor = conn.cursor()
     cursor.execute('''SELECT salt, master_password_hash FROM vault LIMIT 1''')
@@ -49,7 +68,20 @@ def login(password):
     
     if hashed == master_password_hash:
         print("Login successful")
-        return True
+        access_token = create_access_token(data={"sub": "user"})
+        return  access_token
     else:
         print("Login failed. Incorrect password.")
-        return False
+        return  None
+def verify_token(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except:
+        return None
+def check_user(token:str=Depends(OAuth2_obj)):
+    payload=verify_token(token)
+    if payload==None:
+        raise HTTPException(status_code=404,detail="User not found")
+    else:
+        return payload    
